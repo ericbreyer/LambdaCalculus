@@ -1,17 +1,6 @@
 #lang racket
-;;;-------About-------
-;;; Written by Eric Breyer, Mar 2022
-;;;
-;;; Writing a "meta-language" in Racket that
-;;; defines macros to convert more conventional scheme
-;;; syntax to pure lambda expressions. All computations
-;;; should be done with pure lambda calculus
-;;; ------------------
-
-; export everything in this module for external use
 (provide(all-defined-out))
-
-;;;---Functions to convert lambda expressions back to scheme data for console output---
+;;;  Converting to console output
  (define convertChurchBool
    (lambda (bool)
      ((bool #t) #f)))
@@ -19,25 +8,24 @@
 (define convertChurchNumeral
   (lambda(churchNum)
     ((churchNum (lambda(x) (+ x 1))) 0)))
-
-(define convertChurchPair
-  (lambda (p)
-    (cons (convertChurchNumeral (FIRST p)) (convertChurchNumeral (SECOND p)))))
-
+;
 (define convertChurchList
   (lambda (lat)
     (cond
       ((convertChurchBool (NIL? lat)) '())
       (#t (cons (convertChurchNumeral (FIRST lat)) (convertChurchList (SECOND lat)))))))
 
-(define convertSignedChurchNumeral
-  (lambda(churchNum)
-    (- (convertChurchNumeral (FIRST churchNum)) (convertChurchNumeral (SECOND churchNum)))))
+(define convertChurchPair
+  (lambda (p)
+    (cons (convertChurchNumeral (FIRST p)) (convertChurchNumeral (SECOND p)))))
+
+;(define convertSignedChurchNumeral
+;  (lambda(churchNum)
+;    (- (convertChurchNumeral (FIRST churchNum)) (convertChurchNumeral (SECOND churchNum)))))
 
 
-;;;-----"defining scheme in scheme"-----
+;;; defining scheme in scheme
 
-;;;---Let expressions---
 (define-syntax let
   (syntax-rules ()
     [(_ ((a b) ...) body ...) (curry ((lambda (a ...) body ...) b ...))]))
@@ -47,7 +35,7 @@
     [(_ ((lambda (a) body ...) c)) ((lambda (a) body ...)c)]
     [(_ ((lambda (a b ...) body ...) c d ...)) ((lambda (a) (curry ((lambda (b ...) body ...) d ...))) c)]))
 
-;;;---Scheme numbers to church definition of natural numbers---
+;; Numbers
 
 (define-syntax (toChurch stx)
   (syntax-case stx ()
@@ -57,12 +45,11 @@
      (with-syntax ([newnum (datum->syntax #'num
                                           (- (syntax->datum #'num) 1))])
      #'(toChurch newnum (lambda (f) (lambda (x) (f body)))))]))
-; short alias for toNum
+
 (define-syntax $
   (syntax-rules ()
     [($ arg) (toChurch arg)]))
 
-;;;---Aritmetic---
 (define-syntax (SUCC stx)
   (syntax-case stx ()
     [(_ arg) #'((lambda (n) (lambda (f) (lambda (x) (f ((n f) x)))))arg)]
@@ -86,7 +73,7 @@
     [(_ arg1 arg2) #'(((lambda (b) (lambda (e) (e b)))arg1)arg2)]
     [EXP #'(lambda (b) (lambda (e) (e b)))]))
 
-;;;---Church Booleans, Boolean algebra, and predicates
+;;bools
 (define-syntax (TRUE stx)
   (syntax-case stx ()
     [(_ arg1) #'((lambda (a) (lambda (b) a))arg1)]
@@ -116,11 +103,6 @@
     [(_ arg1 arg2) #'(((lambda (p) (lambda (q) ((p p) q)))arg1)arg2)]
     [OR #'(lambda (p) (lambda (q) ((p p) q)))]))
 
-(define-syntax ZERO?
-  (syntax-rules ()
-    [(_ num) ((lambda (n) ((n (lambda(x) FALSE)) TRUE)) num)]))
-
-;;;---Pairs and pair functions
 (define-syntax (PAIR stx)
   (syntax-case stx ()
     [(_ arg1) #'((lambda (x) (lambda (y) (lambda (f) ((f x) y))))arg1)]
@@ -147,7 +129,6 @@
     [(_ arg) #'((lambda (p) (p (lambda (x) (lambda (y) FALSE))))arg)]
     [NIL? #'(lambda (p) (p (lambda (x) (lambda (y) FALSE))))]))
 
-;;;---Defining a nice list syntax---
 (define-syntax LIST
   (syntax-rules ()
     [(_ (arg ... last) pairs) (LIST (arg ...) ((PAIR last) pairs))]
@@ -155,7 +136,6 @@
     [(_ (arg ... last)) (LIST (arg ...) (PAIR last NIL))]
     ))
 
-;;;---Subtraction arithmetic---
 (define-syntax (Φ stx)
   (syntax-case stx ()
     [(_ arg) #'((lambda (p) ((PAIR (SECOND p)) (SUCC (SECOND p))))arg)]
@@ -172,7 +152,6 @@
     [(_ arg1 arg2) #'(((lambda (m) (lambda (n) ((n PRED) m)))arg1)arg2)]
     [SUB #'(lambda (m) (lambda (n) ((n PRED) m)))]))
 
-;;;---Recursion with the Y combinator---
 (define-syntax M
   (syntax-rules ()
     ((_ func) ((lambda (f) (f f)) func))))
@@ -181,3 +160,6 @@
   (syntax-rules ()
     [(_ func) ((lambda (f) (M (lambda (x) (f (lambda () (x x)))))) func)]))
 
+(define-syntax ZERO?
+  (syntax-rules ()
+    [(_ num) ((lambda (n) ((n (lambda(x) FALSE)) TRUE)) num)]))
