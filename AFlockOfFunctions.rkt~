@@ -265,7 +265,7 @@
 
 ;;; takes (Y a) and gives (a (Y a))
 ;;; gives you a function that you can use
-;;; you can pass other stuff to a - call a (Y a) x y
+;;; you can pass other shit to a - call a (Y a) x y
 ;;; and use x and y as arguments
 ;;; when you want another one to recurse with just call (Y a) again
 ;;; (inside a) and pass it the new arguments
