@@ -25,6 +25,10 @@
   (lambda(churchNum)
     (- (convertChurchNumeral (FIRST churchNum)) (convertChurchNumeral (SECOND churchNum)))))
 
+(define convertChurchRational
+  (lambda(num)
+    (/ (convertSignedChurchNumeral (FIRST num)) (convertSignedChurchNumeral (SECOND num)))))
+
 ;;;COMBINATORS
 
 ;;; Identity 
@@ -320,10 +324,10 @@
         ((((ZERO? ((SUB x) y )) (lambda () (newline))) (lambda () (((f) (PRED x)) y))))))))
 
 
-(let ((TWENTY ((PLUS ((MULT FOUR) FOUR)) FOUR)) (THIRTY ((MULT ((MULT (SUCC FOUR)) TWO)) THREE)))
-  (((Y dissociativeFibListList) (SUCC THIRTY)) TWENTY)
-  )
-(newline)
+;(let ((TWENTY ((PLUS ((MULT FOUR) FOUR)) FOUR)) (THIRTY ((MULT ((MULT (SUCC FOUR)) TWO)) THREE)))
+;  (((Y dissociativeFibListList) (SUCC THIRTY)) TWENTY)
+;  )
+;(newline)
 
 
 ;(newline)
@@ -409,3 +413,35 @@
 ;(lambda (x y) (- x y))))
 ;(lambda (x) (- x 1))))
 ;(lambda (x) (+ x 1)))
+(define ONEs
+  (CONVERTs ONE))
+
+(define TWOs
+  (CONVERTs TWO))
+
+(define THREEs
+  (CONVERTs THREE))
+
+(define FOURs
+  (CONVERTs FOUR))
+
+
+(define CONVERTr
+  (lambda (x)
+    ((V x) ONEs)))
+
+(define INVr
+  (lambda (x)
+    ((V (SECOND x)) (FIRST x))))
+
+(define FRACr
+  (lambda (x)
+    (lambda (y)
+      ((PAIR x) y))))
+
+(define 3/4r
+  ((FRACr THREEs) FOURs))
+
+
+(convertChurchRational 3/4r)
+

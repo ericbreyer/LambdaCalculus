@@ -1,0 +1,61 @@
+#lang s-exp "./schemeSyntax.rkt"
+
+(displayln "natural" (let ((a ($ 0)) (b ($ 3)))
+  b))
+
+;
+(displayln "natural list"(list ($ 1) ($ 2) ($ 3)))
+(displayln "natural" ((lambda (func) ((func ($ 2)) ($ 20))) expt))
+(displayln "natural" (/ ($ 8) ($ 3)))
+(displayln "bool" (>= ($ 3) ($ 5)))
+;(LIST )
+;(displayln "natural" (if (zero? ($ 1)) ($ 9)))
+;
+;
+
+(displayln "natural list"
+  (letrec [
+           (fib
+            (lambda (x)
+              (cond
+                ((zero? x) ($ 0))
+                ((zero? (sub1 x)) ($ 1))
+                (default ((+  (fib (sub1 x))) (fib (sub1 (sub1 x))))))))
+           (fibList
+            (lambda (x)
+              (cond
+                [(zero? x) ((cons (fib ($ 0))) null)]
+                (default ((cons (fib x)) (fibList (sub1 x)))))))
+           (reverse-list
+            (lambda (lat)
+              (letrec ([revhelper
+                        (lambda (x y)
+                          (cond
+                            ((null? x) y)
+                            (default (revhelper (cdr x) (cons (car x) y)))))])
+                (revhelper lat null))))
+           ]
+    (reverse-list (fibList ($ 15)))))
+;(displayln "natural list"
+;           (letrec [(fact
+;                     (lambda (x)
+;                       (cond
+;                         ((zero? (- x ($ 1))) ($ 1))
+;                         (default (* x (fact (sub1 x)))))))
+;                    (factList
+;                     (lambda (x)
+;                       (cond
+;                         ((zero? x) ((cons (fact ($ 0))) NIL))
+;                         (default ((cons (fact x)) (factList (sub1 x)))))))]
+;             (factList ($ 5))
+;             ))
+;
+;(displayln "natural"
+;           (letrec [(list-add
+;                     (lambda (lat)
+;                       (cond
+;                         ((null? lat) ($ 0))
+;                         (default (+ (car lat) (list-add (cdr lat)))))))]
+;             (list-add (list ($ 1) ($ 3) ($ 4)))))
+;
+;(displayln "signed" (/s (% 17) (% -3)))
