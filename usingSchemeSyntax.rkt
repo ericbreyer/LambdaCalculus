@@ -20,6 +20,7 @@
 (displayln "natural" (time (car ((($ 9) cdr) (list ($ 1) ($ 2) ($ 3) ($ 4) ($ 5) ($ 6) ($ 7) ($ 8) ($ 9) ($ 10))))))
 
 
+
 ;(displayln "natural" (let ((a ($ 0)) (b ($ 3)))
 ;  b))
 ;
@@ -79,3 +80,5 @@
 ;             (list-add (list ($ 1) ($ 3) ($ 4)))))
 ;
 ;(displayln "signed" (/s (% 17) (% -3)))
+
+(displayln "char" (& #\A))

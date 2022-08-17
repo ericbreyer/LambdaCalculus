@@ -1,0 +1,98 @@
+#lang racket
+(require "./schemeSyntax.rkt")
+
+(provide turing-machine)
+(define-syntax (turing-machine-1 stx)
+  (syntax-parse stx
+    [(_ start-tape
+        start-pos
+        start-state
+        (s n s-prime n-prime dir)...)
+     #'(letrec [(list-ref
+                 (lambda (lat idx)
+                   (car ((idx cdr) lat))))
+                (list-set
+                 (lambda (lat idx set)
+                   (cond
+                     ((= idx ($ 0)) (cons set (cdr lat)))
+                     (default (cons (car lat) (list-set (cdr lat) (- idx ($ 1)) set))))))
+                (turing-step
+                 (lambda (tape position state)
+                   
+                   (cond
+                     (((and (= state s)) (= (list-ref tape position) n)) (turing-step (list-set tape position n-prime) (dir position ($ 1)) s-prime))...
+                     (else (cons tape state)))))]
+         (turing-step start-tape start-pos start-state))]))
+
+#;(define-syntax (turing-machine stx)
+    (syntax-parse stx
+      [(_ tape-start
+          start-state
+          (s n s-prime n-prime dir)...)
+       #'(letrec [
+                  (/
+                   (lambda (x y)
+                     (cond
+                       ((zero? y) ($ 0))
+                       ((zero? (- y x)) (add1 (/ (- x y) y)))
+                       (default ($ 0)))))
+                  (list-ref
+                   (lambda (lat idx)
+                     (car ((idx cdr) lat))))
+                  (list-set
+                   (lambda (lat idx set)
+                     (cond
+                       ((= idx ($ 0)) (cons set (cdr lat)))
+                       (default (cons (car lat) (list-set (cdr lat) (- idx ($ 1)) set))))))
+                  (start-tape
+                   (lambda (size starting idx)
+                     (cond
+                       ((= size idx) null)
+                       ((not (>= idx (/ size ($ 2)))) (cons (& #\_) (start-tape size starting (add1 idx))))
+                       ((null? starting) (cons (& #\_) (start-tape size starting (add1 idx))))
+                       (default (cons (car starting) (start-tape size (cdr starting) (add1 idx)))))))
+                     
+                  (turing-step
+                   (lambda (tape position state)
+                     (cond
+                       (((and (= state s)) (= (list-ref tape position) n)) (turing-step (list-set tape position n-prime) (dir position ($ 1)) s-prime))...
+                       (else (cons tape state)))))]
+           (turing-step (start-tape ($ 100) tape-start ($ 0)) (/ ($ 100) ($ 2)) start-state))]))
+
+(define-syntax (turing-machine stx)
+  (syntax-parse stx
+    [(_ tape-start
+        start-state
+        (s n s-prime n-prime dir)...)
+     #'(letrec [
+                (reverse
+                 (lambda (lat rev)
+                   (cond
+                     ((null? lat) rev)
+                     (default (reverse (cdr lat) (cons (car lat) rev))))))
+                (blanks
+                 (cons (& #\_) blanks))
+                (start-tape
+                 (lambda (starting)
+                   (letrec [(helper
+                             (lambda (lat)
+                               (cond
+                                 ((null? lat) blanks)
+                                 (default (cons (car lat) (helper (cdr lat)))))))]
+                     (cons blanks (helper starting)))))
+                (move-tape
+                 (lambda (d tape)
+                   (cond
+                     ((= d ($ 0)) (cons (cdr (car tape)) (cons (car (car tape)) (cdr tape))))
+                     ((= d ($ 1)) (cons (cons (car (cdr tape)) (car tape)) (cdr (cdr tape))))
+                     ((= d ($ 2)) tape))))
+                (turing-step
+                 (lambda (tape state)
+                   ($f
+                     (displayTape (cons tape state))
+                   (cond
+                     ((and (= state s) (= (car (cdr tape)) n)) (turing-step (move-tape dir (cons (car tape) (cons n-prime (cdr (cdr tape))))) s-prime))...
+                     (else (cons tape state))))))]
+         (turing-step (start-tape tape-start) start-state))]))
+
+

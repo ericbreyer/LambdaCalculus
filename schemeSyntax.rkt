@@ -1,7 +1,7 @@
-#lang racket
+#lang lazy
 
-(require syntax/parse)
-(require (for-syntax syntax/parse racket/syntax racket/format))
+(require syntax/parse racket/base)
+(require (for-syntax syntax/parse racket/syntax racket/format racket/base))
 (require (for-meta 2 syntax/parse racket/syntax racket/base))
 
 ;;;-------About-------
@@ -37,6 +37,10 @@
   (lambda(churchNum)
     ((churchNum (lambda(x) (add1 x))) 0)))
 
+(define convertChurchChar
+  (lambda(churchNum)
+    (integer->char (convertChurchNumeral churchNum))))
+
 (define convertChurchPair
   (lambda (innerConversionFunc)
     (lambda (p)
@@ -54,14 +58,36 @@
   (lambda(churchNum)
     (- (convertChurchNumeral (FIRST churchNum)) (convertChurchNumeral (SECOND churchNum)))))
 
+(provide (rename-out [displaylnTape displayTape]))
+(define displaylnTape
+  (lambda (data)
+    (displayln ((hash-ref displayHash "tape section") (FIRST data)))
+    (displayln "                     ^                      ")
+    (display   "                     ") (displayln (convertChurchNumeral (SECOND data)))
+    (newline)))
+
+(define convertTuringTapePart
+  (lambda (tape)
+    (letrec [(helper
+              (lambda (lats idx half)
+                (cond
+                  ((and (convertChurchBool (EQ? idx (toChurch 0))) (equal? half "left")) (cons (convertChurchChar (FIRST ((idx SECOND) (FIRST lats)))) (helper lats (toChurch 0) "right")))
+                  ((and (convertChurchBool (GEQ? idx (toChurch 0))) (equal? half "left")) (cons (convertChurchChar (FIRST ((idx SECOND) (FIRST lats)))) (helper lats (PRED idx) "left")))
+                  ((and (convertChurchBool (NOT (GEQ? idx (toChurch 11)))) (equal? half "right")) (cons (convertChurchChar (FIRST ((idx SECOND) (SECOND lats)))) (helper lats (SUCC idx) "right")))
+                  (#t '()))))]
+      (helper tape (toChurch 9) "left"))))
+
 (define displayHash (hash
                      "bool" convertChurchBool
                      "natural" convertChurchNumeral
+                     "char" convertChurchChar
                      "natural pair" (convertChurchPair convertChurchNumeral)
                      "natural list" (convertChurchList convertChurchNumeral)
+                     "char list" (convertChurchList convertChurchChar)
                      "natural list list" (convertChurchList (convertChurchList convertChurchNumeral))
                      "signed" convertSignedChurchNumeral
-                     "signed list" (convertChurchList convertSignedChurchNumeral)))
+                     "signed list" (convertChurchList convertSignedChurchNumeral)
+                     "tape section" convertTuringTapePart))
 
 ;;;***-------------------------------------***
 ;;;***-----"defining scheme in scheme"-----***
@@ -106,7 +132,9 @@
     (pattern (~or* (lambda (:id ...) :expr/lc ...+)
                    (:expr/lc :expr/lc ...)
                    :id
-                   :toBeChurchy)))
+                   :string
+                   :toBeChurchy
+                   :expr)))
   )
 
 ;defining a simple macro - a macro which is just a simple replace for a lambda calculus expression
@@ -175,6 +203,7 @@
 ;;;---Let expressions---
 ;;;---------------------
 
+(provide (rename-out [let/lc let]))
 (define-syntax (let/lc stx)
 
   (define-syntax-class bp
@@ -209,6 +238,14 @@
     [(_ appsLeft:nat (lambda (f) (lambda (x) body)))                                ; recursive case
      #:with newAppsLeft (datum->syntax #'appsLeft (- (syntax->datum #'appsLeft) 1))
      #'(toChurch newAppsLeft (lambda (f) (lambda (x) (f body))))]))
+
+(provide (rename-out [charToChurch &]))
+(define-syntax (charToChurch stx)
+  (syntax-parse stx
+    #:literals (lambda)
+    [(_ char)                                ; recursive case
+     #:with charNum (datum->syntax #'char (char->integer (syntax->datum #'char)))
+     #'(toChurch charNum)]))
 
 ;;;---------------
 ;;;---Aritmetic---
@@ -246,7 +283,7 @@
 ;;;---Nice List Syntax---
 ;;;----------------------
 
-(provide (rename-out (LIST list)))
+(provide (rename-out (LIST list) (LIST L)))
 (define-syntax (LIST stx)
   (syntax-parse stx
     [(_ () pairs) #'pairs]                                                ;base case
@@ -262,13 +299,6 @@
 (define-simple-func Φ    phi (lambda (p) ((PAIR (SECOND p)) (SUCC (SECOND p)))) expr/lc 1)
 (define-simple-func PRED sub1 (lambda (n) (FIRST ((n Φ) ((PAIR (toChurch 0)) (toChurch 0))))) expr/lc 1)
 (define-simple-func SUB - (lambda (m) (lambda (n) ((n PRED) m))) expr/lc 2)
-(define-simple-func DIV / (rec-def div
-                                   (lambda (x)
-                                     (lambda (y)
-                                       (mycond
-                                        ((ZERO? y) (toChurch 0))
-                                        ((ZERO? (SUB y x)) (SUCC ((div (SUB x y)) y)))
-                                        (default (toChurch 0)))))) expr/lc 2)
 
 
 (define-simple-func GEQ? >= (lambda (arg1) (lambda (arg2) (ZERO? (SUB arg2 arg1)))) expr/lc 2)
@@ -338,6 +368,15 @@
 
 (provide (rename-out (TRUE default)))
 (provide (rename-out (TRUE else)))
+
+#;(define-simple-func DIV / (Y-app (lambda (f)
+                                   (lambda (x)
+                                     (lambda (y)
+                                      (mycond
+                                        ((ZERO? y) (toChurch 0))
+                                       ; ((ZERO? (SUB y x)) (SUCC ((TRUE (SUB x y)) y)))
+                                        (TRUE (toChurch 0)))))) expr/lc 2))
+
 
 ;(define-syntax default
 ;  (syntax-rules ()
@@ -534,3 +573,26 @@
 ;(define-syntax (lambda stx)
 ;  (syntax-parse stx
 ;    ((lambda (args ...) body ...) #'(λ (args ...) (sleep .1) body ...))))
+
+(provide define-syntax (for-syntax syntax-parse syntax #%app) require for-syntax)
+#;(provide turing-machine)
+#;(define-syntax (turing-machine stx)
+  (syntax-parse stx
+    [(_ start-tape
+       start-pos
+       start-state
+       (s n s-prime n-prime dir)...)
+     #'(letrec [(list-ref
+                 (lambda (lat idx)
+                   (FIRST ((idx SECOND) lat))))
+                (list-set
+                 (lambda (lat idx set)
+                   (cond
+                     ((EQ? idx (toChurch 0)) (PAIR set (SECOND lat)))
+                     (TRUE (PAIR (FIRST lat) (list-set (SECOND lat) (SUB idx (toChurch 1)) set))))))
+                (turing-step
+                 (lambda (tape position state)
+                   (cond
+                     (((AND (EQ? state s)) (EQ? (list-ref tape position) n)) ((displaylnConvert "bool" ((AND (EQ? state s)) (EQ? (list-ref tape position) n))) (displayln (list (convertChurchNumeral s) (convertChurchNumeral n))) (turing-step (list-set tape position n-prime) (dir position (toChurch 1))  (toChurch 20))))...
+                     (TRUE tape))))]
+         (turing-step start-tape start-pos start-state))]))
