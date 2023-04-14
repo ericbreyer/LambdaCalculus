@@ -1,1 +1,0 @@
-("8.2" ta6osx ("1e92e203ec2fec27c202f8e3e27a5fd3028ee76e" . "6a3f9324ef4d56e99f190c3796742e780301734b") (collects #"errortrace" #"errortrace-key.rkt") (collects #"info" #"main.rkt") (collects #"setup" #"infotab.rkt"))
